@@ -19,12 +19,26 @@ import (
 	"math/rand"
 	"net/http/cookiejar"
 	"axiom"
+	"net/url"
 )
 
 const (
 	appid string = "wx782c26e4c19acffb"
 
 	DefaultUserAgent string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36"
+)
+
+const (
+	// Offical 公众号 ...
+	Offical = 0
+	// Friend 好友 ...
+	Friend = 1
+	// Group 群组 ...
+	Group = 2
+	// Member 群组成员 ...
+	Members = 3
+	// FriendAndMember 即是好友也是群成员 ...
+	FriendAndMember = 4
 )
 
 type WeChat struct {
@@ -58,6 +72,8 @@ type weixin struct {
 	PublicUserList  []Member //公众号
 	SpecialUserList []Member //特殊账号
 
+	syncMessageResponse *syncMessageResponse
+
 	client  *http.Client
 }
 
@@ -90,7 +106,7 @@ type Member struct {
 	HeadImgUrl       string
 	ContactFlag      int
 	MemberCount      int
-	MemberList       []User
+	MemberList       []Member
 	RemarkName       string
 	HideInputBarFlag int
 	Sex              int
@@ -144,6 +160,57 @@ type initResp struct {
 	Skey    string
 	SyncKey syncKey
 }
+
+type syncMessageResponse struct {
+	BaseResponse
+	SyncKey      syncKey
+	ContinueFlag int
+
+	// Content
+	AddMsgCount            int
+	AddMsgList             []addMsgList
+	ModContactCount        int
+	ModContactList         []map[string]interface{}
+	DelContactCount        int
+	DelContactList         []map[string]interface{}
+	ModChatRoomMemberCount int
+	ModChatRoomMemberList  []map[string]interface{}
+}
+
+type addMsgList struct {
+	ForwardFlag int
+	FromUserName string
+	PlayLength int
+	Content string
+	CreateTime int64
+	StatusNotifyUserName string
+	StatusNotifyCode int
+	Status int
+	VoiceLength int
+	ToUserName string
+	AppMsgType int
+	Url string
+	ImgStatus int
+	MsgType int
+	ImgHeight int
+	MediaId string
+	FileName string
+	FileSize string
+}
+
+type getContactResponse struct {
+	BaseResponse
+	MemberCount int
+	MemberList  []Member
+	Seq         float64
+}
+
+type batchGetContactResponse struct {
+	BaseResponse
+	Count       int
+	ContactList []Member
+}
+
 
 func NewWeChat(bot *axiom.Robot, qr_code_path string) *WeChat {
 	wx := &weixin{
@@ -202,12 +269,12 @@ func (w *WeChat) getQRcode(args ...interface{}) bool {
 			exec.Command("open", path).Run()
 		} else {
 			go func() {
-				fmt.Println("please open on web broswer ip:99250/qrcode")
+				fmt.Println("请在浏览器打开连接 ip:9250/qrcode")
 				http.HandleFunc("/qrcode", func(w http.ResponseWriter, req *http.Request) {
 					http.ServeFile(w, req, "qrcode.jpg")
 					return
 				})
-				http.ListenAndServe(":99250", nil)
+				http.ListenAndServe(":9250", nil)
 			}()
 		}
 		return true
@@ -355,7 +422,121 @@ func (w *WeChat) wxStatusNotify(args ...interface{}) bool {
 	return retCode == 0
 }
 
-// 请求群组列表
+// 获取联系人列表
+func (w *WeChat) getContact(seq float64) ([]Member, float64, error) {
+
+	url := fmt.Sprintf(`%s/webwxgetcontact?pass_ticket=%s&&skey=%s&r=%s&seq=%v`, w.wx.base_uri, w.wx.pass_ticket, w.wx.skey, time.Now().Unix(), seq)
+
+	res, err := w.httpGet(url)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	data := new(getContactResponse)
+	err = json.Unmarshal(res, &data)
+	if err != nil {
+		CLog(" [ ERRO ] 请求群组列表，解析失败：%s", err)
+		return nil, 0, err
+	}
+
+	return data.MemberList, data.Seq, nil
+}
+
+func (w *WeChat) syncContact() error {
+
+	// 从头拉取通讯录
+	seq := float64(-1)
+
+	var cts []Member
+
+	for seq != 0 {
+		if seq == -1 {
+			seq = 0
+		}
+		memberList, s, err := w.getContact(seq)
+		if err != nil {
+			return err
+		}
+		seq = s
+		cts = append(cts, memberList...)
+	}
+
+	var groupUserNames []string
+
+	var tempIdxMap = make(map[string]int)
+
+	for idx, v := range cts {
+
+		vf := v.VerifyFlag
+		un := v.UserName
+
+		if vf/8 != 0 {
+			v.ContactFlag = Offical
+		} else if strings.HasPrefix(un, `@@`) {
+			v.ContactFlag = Group
+			groupUserNames = append(groupUserNames, un)
+		} else {
+			v.ContactFlag = Friend
+		}
+		tempIdxMap[un] = idx
+	}
+
+	groups, _ := w.fetchGroups(groupUserNames)
+
+	for _, group := range groups {
+
+		groupUserName := group.UserName
+		contacts := group.MemberList
+
+		for _, c := range contacts {
+			un := c.UserName
+			if idx, found := tempIdxMap[un]; found {
+				cts[idx].ContactFlag = FriendAndMember
+			} else {
+				c.HeadImgUrl = fmt.Sprintf(`/cgi-bin/mmwebwx-bin/webwxgeticon?seq=0&username=%s&chatroomid=%s&skey=`, un, groupUserName)
+				c.ContactFlag = Members
+				cts = append(cts, c)
+			}
+		}
+
+		group.ContactFlag = Group
+		idx := tempIdxMap[groupUserName]
+		cts[idx] = group
+	}
+
+	return nil
+}
+
+func (w *WeChat) fetchGroups(usernames []string) ([]Member, error) {
+	url := fmt.Sprintf("%s/webwxbatchgetcontact?pass_ticket=%s&skey=%s&r=%s", w.wx.base_uri, w.wx.pass_ticket, w.wx.skey, time.Now().Unix())
+
+	params := make(map[string]interface{})
+	params["BaseRequest"] = w.wx.BaseRequest
+	params["Count"] = 1
+	params["List"] = []map[string]string{}
+	var list []map[string]string
+	for _, u := range usernames {
+		list = append(list, map[string]string{
+			`UserName`:   u,
+			`ChatRoomId`: ``,
+		})
+	}
+
+	res, err := w.httpPost(url, params)
+	if err != nil {
+		return nil, err
+	}
+
+	var data *batchGetContactResponse
+	err = json.Unmarshal(res, &data)
+	if err != nil {
+		CLog(" [ ERRO ] 请求群组列表，解析失败：%s", err)
+		return nil, err
+	}
+
+	return data.ContactList, nil
+}
+
 func (w *WeChat) webGetChatRoomMember(chatroomId string) (map[string]string, error) {
 	url := fmt.Sprintf("%s/webwxbatchgetcontact?pass_ticket=%s&skey=%s&r=%s", w.wx.base_uri, w.wx.pass_ticket, w.wx.skey, time.Now().Unix())
 
@@ -376,23 +557,23 @@ func (w *WeChat) webGetChatRoomMember(chatroomId string) (map[string]string, err
 		return stats, err
 	}
 
-	var data = make(map[string]interface{})
-	err = json.Unmarshal(res, data)
+	var data *batchGetContactResponse
+	err = json.Unmarshal(res, &data)
 	if err != nil {
-		//panic("初始化微信，解析失败：" + err)
+		CLog(" [ ERRO ] 请求群组列表，解析失败：%s", err)
 		return stats, err
 	}
 
-	RoomContactList := data["ContactList"].([]interface{})[0].(map[string]interface{})["MemberList"]
+	RoomContactList := data.ContactList
 	man := 0
 	woman := 0
-	for _, v := range RoomContactList.([]interface{}) {
-		if m, ok := v.([]interface{}); ok {
-			for _, s := range m {
-				members = append(members, s.(map[string]interface{})["UserName"].(string))
+	for _, v := range RoomContactList {
+		if len(v.MemberList) > 0 {
+			for _, s := range v.MemberList {
+				members = append(members, s.UserName)
 			}
 		} else {
-			members = append(members, v.(map[string]interface{})["UserName"].(string))
+			members = append(members, v.UserName)
 		}
 	}
 	url = fmt.Sprintf("%s/webwxbatchgetcontact?pass_ticket=%s&skey=%s&r=%s", w.wx.base_uri, w.wx.pass_ticket, w.wx.skey, time.Now().Unix())
@@ -424,17 +605,19 @@ func (w *WeChat) webGetChatRoomMember(chatroomId string) (map[string]string, err
 
 		dic, err := w.httpPost(url, params)
 		if err == nil {
-			userlist := make(map[string]interface{})
-			err = json.Unmarshal(dic, userlist)
+			var userlist *batchGetContactResponse
+			err = json.Unmarshal(dic, &userlist)
 			if err == nil {
-				for _, u := range userlist["ContactList"].([]interface{}) {
-					if u.(map[string]interface{})["Sex"].(int) == 1 {
+				for _, u := range userlist.ContactList {
+					if u.Sex == 1 {
 						man++
-					} else if u.(map[string]interface{})["Sex"].(int) == 2 {
+					} else if u.Sex == 2 {
 						woman++
 					}
 				}
 			}
+		} else {
+			CLog("[INFO] 请求用户失败")
 		}
 		k++
 	}
@@ -454,9 +637,9 @@ func (w *WeChat) syncCheck(args ...interface{}) (string, string) {
 	reg := regexp.MustCompile(`window.synccheck={retcode:"(\d+)",selector:"(\d+)"}`)
 
 	res := string(data)
-	println(res)
 
 	find := reg.FindStringSubmatch(res)
+
 	if len(find) > 2 {
 		retcode := find[1]
 		selector := find[2]
@@ -500,7 +683,7 @@ func (w *WeChat) testsynccheck(args ...interface{}) bool {
 }
 
 // 获取新消息
-func (w *WeChat) webwxsync(args ...interface{}) (interface{}, error) {
+func (w *WeChat) webwxsync(args ...interface{}) (*syncMessageResponse, error) {
 	url := fmt.Sprintf("%s/webwxsync?sid=%s&skey=%s&pass_ticket=%s", w.wx.base_uri, w.wx.sid, w.wx.skey, w.wx.pass_ticket)
 	params := make(map[string]interface{})
 	params["BaseRequest"] = w.wx.BaseRequest
@@ -511,16 +694,17 @@ func (w *WeChat) webwxsync(args ...interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	var data = make(map[string]interface{})
-	err = json.Unmarshal(res, data)
+	var data *syncMessageResponse
+	err = json.Unmarshal(res, &data)
 	if err != nil {
-		//panic("初始化微信，解析失败：" + err)
+		CLog("[ ERRO ]获取新消息，解析消息失败：%s...", err)
 		return nil, err
 	}
 
-	retCode := data["BaseResponse"].(map[string]interface{})["Ret"].(int)
+	retCode := data.BaseResponse.Ret
 	if retCode == 0 {
-		w.wx.SyncKey = data["SyncKey"].(syncKey)
+		//w.wx.syncMessageResponse = data
+		w.wx.SyncKey = data.SyncKey
 		w._setsynckey()
 	}
 	return data, nil
@@ -549,51 +733,6 @@ func (w *WeChat) webWXsendMsg(message string, toUseNname string) bool {
 		return false
 	} else {
 		return true
-	}
-}
-
-// 处理消息
-func (w *WeChat) handleMsg(r interface{}) {
-	myNickName := w.wx.User.NickName
-	for _, msg := range r.(map[string]interface{})["AddMsgList"].([]interface{}) {
-		// fmt.Println("[*] 你有新的消息，请注意查收")
-		// msg = msg.(map[string]interface{})
-		msgType := msg.(map[string]interface{})["MsgType"].(int)
-		fromUserName := msg.(map[string]interface{})["FromUserName"].(string)
-		// name = self.getUserRemarkName(msg['FromUserName'])
-		content := msg.(map[string]interface{})["Content"].(string)
-		content = strings.Replace(content, "&lt;", "<", -1)
-		content = strings.Replace(content, "&gt;", ">", -1)
-		content = strings.Replace(content, " ", " ", 1)
-		// msgid := msg.(map[string]interface{})["MsgId"].(int)
-		if msgType == 1 {
-			var ans string
-			var err error
-			if fromUserName[:2] == "@@" {
-				CLog(" # * # 收到群消息：" + content + "|0045")
-				contentSlice := strings.Split(content, ":<br/>")
-				// people := contentSlice[0]
-				content = contentSlice[1]
-				if strings.Contains(content, "@"+myNickName) {
-					realcontent := strings.TrimSpace(strings.Replace(content, "@"+myNickName, "", 1))
-					CLog(" # * # 收到群消息：" + realcontent + "|0046")
-					if realcontent == "统计人数" {
-						stat, err := w.webGetChatRoomMember(fromUserName)
-						if err == nil {
-							ans = " # * # 据统计群里男生" + stat["man"] + "人，女生" + stat["woman"] + "人 (ó㉨ò)"
-						}
-					}
-				}
-			}
-
-			if err != nil {
-				CLog("[ ERRO ] : " + err.Error())
-			} else if ans != "" {
-				go w.webWXsendMsg(ans, fromUserName)
-			}
-		} else if msgType == 51 {
-			CLog(" # * # 成功截获微信初始化消息")
-		}
 	}
 }
 
@@ -652,6 +791,28 @@ func (w *WeChat) httpPost(url string, params map[string]interface{}) ([]byte, er
 	return body, nil
 }
 
+func (w *WeChat) CookieDataTicket() string {
+
+	url, err := url.Parse(w.wx.base_uri)
+
+	if err != nil {
+		return ``
+	}
+
+	ticket := ``
+
+	cookies := w.wx.client.Jar.Cookies(url)
+
+	for _, cookie := range cookies {
+		if cookie.Name == `webwx_data_ticket` {
+			ticket = cookie.Value
+			break
+		}
+	}
+
+	return ticket
+}
+
 func (w *WeChat) _run(desc string, f func(...interface{}) bool, args ...interface{}) {
 	start := time.Now().UnixNano()
 	CLog(desc)
@@ -706,16 +867,6 @@ func (w *WeChat) Construct() error {
 	w._run(" # ** # 开启状态通知 ... ", w.wxStatusNotify)
 	w._run(" # ** # 进行同步线路测试 ... ", w.testsynccheck)
 
-	return nil
-}
-
-// 解析
-func (w *WeChat) Process() error {
-	return nil
-}
-
-// 回应
-func (w *WeChat) Reply(msg axiom.Message, message string) error {
 	for {
 		retcode, selector := w.syncCheck()
 		if retcode == "1100" {
@@ -726,12 +877,12 @@ func (w *WeChat) Reply(msg axiom.Message, message string) error {
 			break
 		} else if retcode == "0" {
 			if selector == "2" {
-				r, _ := w.webwxsync()
-				switch r.(type) {
-				case bool:
-				default:
-					w.handleMsg(r)
+				smsg, err := w.webwxsync()
+				if err == nil {
+					w.wx.syncMessageResponse = smsg
+					w.Process()
 				}
+
 			} else if selector == "0" {
 				time.Sleep(1)
 			} else if selector == "6" || selector == "4" {
@@ -740,6 +891,94 @@ func (w *WeChat) Reply(msg axiom.Message, message string) error {
 			}
 		}
 	}
+
+	return nil
+}
+
+// 解析
+func (w *WeChat) Process() error {
+
+	msg := w.wx.syncMessageResponse
+
+	myNickName := w.wx.User.NickName
+
+	for _, m := range msg.AddMsgList {
+
+		//CLog("[ * ] 收到新的消息，请注意查收...")
+		//CLog("< 发送人 > :%s", m.FromUserName)
+		// msg = msg.(map[string]interface{})
+		msgType := m.MsgType
+		fromUserName := m.FromUserName
+		// name = self.getUserRemarkName(msg['FromUserName'])
+		content := m.Content
+		content = strings.Replace(content, "&lt;", "<", -1)
+		content = strings.Replace(content, "&gt;", ">", -1)
+		content = strings.Replace(content, " ", " ", 1)
+
+		// msgid := msg.(map[string]interface{})["MsgId"].(int)
+		if msgType == 1 {
+
+			contentSlice := strings.Split(content, ":<br/>")
+			// people := contentSlice[0]
+			content = contentSlice[1]
+
+			if strings.Contains(content, "@"+myNickName) {
+				realcontent := strings.TrimSpace(strings.Replace(content, "@" + myNickName, "", 1))
+				CLog(" # * # 收到群消息：" + realcontent + " | 0046")
+
+				v := axiom.Message{
+					User: fromUserName,
+					Text: realcontent,
+				}
+
+				w.bot.ReceiveMessage(v)
+			}
+
+			/*var ans string
+			var err error
+			if fromUserName[:2] == "@@" {
+				//CLog(" # * # 收到群消息：" + content + " | 0045")
+				contentSlice := strings.Split(content, ":<br/>")
+				// people := contentSlice[0]
+				content = contentSlice[1]
+
+				if strings.Contains(content, "@"+myNickName) {
+					realcontent := strings.TrimSpace(strings.Replace(content, "@"+myNickName, "", 1))
+					CLog(" # * # 收到群消息：" + realcontent + " | 0046")
+
+					v := axiom.Message{
+						Id:
+						User: u.Username,
+						Text: realcontent,
+					}
+					w.bot.ReceiveMessage(v)
+
+					if realcontent == "统计人数" {
+						stat, err := w.webGetChatRoomMember(fromUserName)
+						if err == nil {
+							ans = "据统计群里男生" + stat["man"] + "人，女生" + stat["woman"] + "人 (ó-ò)"
+						}
+					}
+				}
+			}
+
+			if err != nil {
+				CLog("[ ERRO ] : " + err.Error())
+			} else if ans != "" {
+				w.webWXsendMsg(ans, fromUserName)
+			}*/
+		} else if msgType == 51 {
+			CLog(" # * # 成功截获微信初始化消息")
+		}
+	}
+
+	return nil
+}
+
+// 回应
+func (w *WeChat) Reply(msg axiom.Message, message string) error {
+
+	w.webWXsendMsg(message, msg.User)
 	return nil
 }
 
