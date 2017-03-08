@@ -47,21 +47,24 @@ func colorLogS(format string, a ...interface{}) string {
 
 		// Error.
 		log = strings.Replace(log, "[ ", fmt.Sprintf("\033[%dm", Red), -1)
-		log = strings.Replace(log, " ]", EndColor+"", -1)
+		log = strings.Replace(log, " ]", EndColor+" ", -1)
+
+		log = strings.Replace(log, "$$ ", fmt.Sprintf("\033[%dm", Red), -1)
+		log = strings.Replace(log, " $$", EndColor+" ", -1)
 
 		// Path.
 		log = strings.Replace(log, "( ", fmt.Sprintf("\033[%dm", Yellow), -1)
-		log = strings.Replace(log, " )", EndColor+"", -1)
+		log = strings.Replace(log, " )", EndColor+" ", -1)
 
 		log = strings.Replace(log, "< ", fmt.Sprintf("\033[%dm", Cyan), -1)
-		log = strings.Replace(log, " >", EndColor+"", -1)
+		log = strings.Replace(log, " >", EndColor+" ", -1)
 
 		// Highlights.
 		log = strings.Replace(log, "# ", fmt.Sprintf("\033[%dm", Magenta), -1)
-		log = strings.Replace(log, " #", EndColor+"", -1)
+		log = strings.Replace(log, " #", EndColor+" ", -1)
 
 		log = strings.Replace(log, "@@ ", fmt.Sprintf("\033[%dm", Green), -1)
-		log = strings.Replace(log, " @@", EndColor+"", -1)
+		log = strings.Replace(log, " @@", EndColor+" ", -1)
 
 		log = clog + log
 
@@ -75,19 +78,22 @@ func colorLogS(format string, a ...interface{}) string {
 		log = log[i+1:]
 
 		// Error.
-		log = strings.Replace(log, "[ ", "", -1)
-		log = strings.Replace(log, " ]", "", -1)
+		log = strings.Replace(log, "[ ", " ", -1)
+		log = strings.Replace(log, " ]", " ", -1)
+
+		log = strings.Replace(log, " $$ ", " ", -1)
+		log = strings.Replace(log, " $$ ", " ", -1)
 
 		// Path.
-		log = strings.Replace(log, "( ", "", -1)
-		log = strings.Replace(log, " )", "", -1)
+		log = strings.Replace(log, "( ", " ", -1)
+		log = strings.Replace(log, " )", " ", -1)
 
 		// Highlights.
-		log = strings.Replace(log, "# ", "", -1)
-		log = strings.Replace(log, " #", "", -1)
+		log = strings.Replace(log, "# ", " ", -1)
+		log = strings.Replace(log, " #", " ", -1)
 
-		log = strings.Replace(log, "@@ ", "", -1)
-		log = strings.Replace(log, " @@", "", -1)
+		log = strings.Replace(log, "@@ ", " ", -1)
+		log = strings.Replace(log, " @@", " ", -1)
 
 		log = clog + log
 	}

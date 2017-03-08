@@ -670,13 +670,13 @@ func (w *WeChat) testsynccheck(args ...interface{}) bool {
 		`webpush2.wx.qq.com`}
 
 	for _, host := range hosts {
-		CLog("< * > 尝试连接: %s ... ... ", host)
+		CLog(" < * > # 尝试连接: %s ... ... # ", host)
 		w.wx.syncHost = host
 		code, _ := w.syncCheck()
 		if code == `0` {
 			return true
 		}
-		CLog(" [ * ] %s 连接失败...", host)
+		CLog(" $$ * $$ %s 连接失败...", host)
 	}
 
 	return false
@@ -826,9 +826,9 @@ func (w *WeChat) _run(desc string, f func(...interface{}) bool, args ...interfac
 	}
 	useTime := fmt.Sprintf("%.5f", (float64(time.Now().UnixNano()-start) / 1000000000))
 	if result {
-		CLog(" @@ 成功 @@ , 用时 < " + useTime + " > 秒")
+		CLog(" @@ * @@ < 成功 > , 用时 $$ " + useTime + " $$ 秒")
 	} else {
-		CLog(" ( 失败 ) # 退出程序 # ...")
+		CLog(" $$ * $$ ( 失败 ) # 退出程序 ... # ")
 		os.Exit(1)
 	}
 }
@@ -847,33 +847,33 @@ func (w *WeChat) _init() {
 
 // 初始化
 func (w *WeChat) Construct() error {
-	CLog(" # ** #  微信网页版... 开动 ")
+	CLog(" # * # @@ 微信网页版开动 @@ ...  ")
 	w._init()
-	w._run(" # ** # 获取 uuid ... ", w.getUUID)
-	w._run(" # ** # 正在获取 二维码 ... ", w.getQRcode)
-	CLog(" # ** # 请使用微信扫描二维码以登录 ... ")
+	w._run(" # * # < 获取 uuid ... > ", w.getUUID)
+	w._run(" # * # @@ 正在获取 二维码 ... @@ ", w.getQRcode)
+	CLog(" # * # @@ 请使用微信扫描二维码以登录 ... @@ ")
 	for {
 		if w.waitForLogin(1) == false {
 			continue
 		}
-		CLog(" # ** # 请在手机上点击确认以登录 ... ")
+		CLog(" # * # @@ 请在手机上点击确认以登录 ... @@ ")
 		if w.waitForLogin(0) == false {
 			continue
 		}
 		break
 	}
-	w._run(" # ** # 正在登录 ... ", w.login)
-	w._run(" # ** # 微信初始化 ... ", w.webWXInit)
-	w._run(" # ** # 开启状态通知 ... ", w.wxStatusNotify)
-	w._run(" # ** # 进行同步线路测试 ... ", w.testsynccheck)
+	w._run(" # * # < 正在登录 ... > ", w.login)
+	w._run(" # * # < 微信初始化 ... > ", w.webWXInit)
+	w._run(" # * # @@ 开启状态通知 ... @@ ", w.wxStatusNotify)
+	w._run(" # * # @@ 进行同步线路测试 ... @@ ", w.testsynccheck)
 
 	for {
 		retcode, selector := w.syncCheck()
 		if retcode == "1100" {
-			CLog(" # ** # 你在手机上登出了微信，债见")
+			CLog(" # * # ( 你在手机上登出了微信，债见... )")
 			break
 		} else if retcode == "1101" {
-			CLog(" # ** # 你在其他地方登录了 WEB 版微信，债见")
+			CLog(" # * # ( 你在其他地方登录了 WEB 版微信，债见 ) ")
 			break
 		} else if retcode == "0" {
 			if selector == "2" {
@@ -917,14 +917,14 @@ func (w *WeChat) Process() error {
 
 		// msgid := msg.(map[string]interface{})["MsgId"].(int)
 		if msgType == 1 {
+			//contentSlice := strings.Split(content, ":<br/>")
 
-			contentSlice := strings.Split(content, ":<br/>")
 			// people := contentSlice[0]
-			content = contentSlice[1]
+			//content = contentSlice[1]
 
 			if strings.Contains(content, "@"+myNickName) {
 				realcontent := strings.TrimSpace(strings.Replace(content, "@" + myNickName, "", 1))
-				CLog(" # * # 收到群消息：" + realcontent + " | 0046")
+				CLog(" # * # < 收到消息：" + realcontent + " | 0046 > ")
 
 				v := axiom.Message{
 					User: fromUserName,
@@ -968,7 +968,7 @@ func (w *WeChat) Process() error {
 				w.webWXsendMsg(ans, fromUserName)
 			}*/
 		} else if msgType == 51 {
-			CLog(" # * # 成功截获微信初始化消息")
+			CLog(" # * # < 成功截获微信初始化消息... > ")
 		}
 	}
 
