@@ -845,6 +845,8 @@ func (w *WeChat) _init() {
 	w.wx.device_id = "e" + str[2:17]
 }
 
+// 获取群的人数
+
 // 初始化
 func (w *WeChat) Construct() error {
 	CLog(" # * # @@ 微信网页版开动 @@ ...  ")
@@ -917,21 +919,33 @@ func (w *WeChat) Process() error {
 
 		// msgid := msg.(map[string]interface{})["MsgId"].(int)
 		if msgType == 1 {
-			//contentSlice := strings.Split(content, ":<br/>")
+			contentSlice := strings.Split(content, ":<br/>")
 
 			// people := contentSlice[0]
-			//content = contentSlice[1]
+			content = contentSlice[1]
 
-			if strings.Contains(content, "@"+myNickName) {
-				realcontent := strings.TrimSpace(strings.Replace(content, "@" + myNickName, "", 1))
-				CLog(" # * # < 收到消息：" + realcontent + " | 0046 > ")
+			if fromUserName[:2] == "@@" {
 
-				v := axiom.Message{
-					User: fromUserName,
-					Text: realcontent,
+				if strings.Contains(content, "@" + myNickName) {
+					realcontent := strings.TrimSpace(strings.Replace(content, "@" + myNickName, "", 1))
+					CLog(" # * # < 收到消息：" + realcontent + " | 0046 > ")
+
+					if realcontent == "统计人数" {
+						stat, err := w.webGetChatRoomMember(fromUserName)
+						if err == nil {
+							ans := "据统计群里男生" + stat["man"] + "人，女生" + stat["woman"] + "人 (ó-ò)"
+
+							w.webWXsendMsg(ans, fromUserName)
+						}
+					}
+
+					v := axiom.Message{
+						User: fromUserName,
+						Text: realcontent,
+					}
+
+					w.bot.ReceiveMessage(v)
 				}
-
-				w.bot.ReceiveMessage(v)
 			}
 
 			/*var ans string
@@ -977,6 +991,8 @@ func (w *WeChat) Process() error {
 
 // 回应
 func (w *WeChat) Reply(msg axiom.Message, message string) error {
+
+	CLog(message)
 
 	w.webWXsendMsg(message, msg.User)
 	return nil
