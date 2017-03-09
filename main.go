@@ -7,7 +7,7 @@ import (
 func main() {
 	b := axiom.New("axiom")
 
-	b.AddAdapter(NewWeChat(b, "./"))
+	b.AddAdapter(NewWeChat(b))
 
 	b.Register(&WeChatListener{})
 
