@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	b := axiom.New("axiom")
+	b := axiom.New()
 
 	b.AddAdapter(NewWeChat(b))
 
@@ -13,6 +13,3 @@ func main() {
 
 	b.Start()
 }
-
-
-

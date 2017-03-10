@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/num5/loger"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -15,11 +17,9 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
-	"math/rand"
-	"github.com/num5/loger"
 )
 
 const httpOK = `200`

@@ -79,7 +79,6 @@ func (wechat *WeChat) beginLoginFlow() error {
 		log.Errorf("恢复失败：%s ...", err.Error())
 	}
 
-
 	// 1.
 	uuid, e := wechat.fetchUUID()
 
@@ -379,7 +378,7 @@ func (wechat *WeChat) refreshCookieCache(cookies []*http.Cookie) {
 		log.Warnf(`刷新 cookie 失败: %v...`, err)
 	} else {
 		createFile(wechat.conf.cookieCachePath(), b, false)
-		log.Info(`刷新 cookie 缓存...`)
+		//log.Info(`刷新 cookie 缓存...`)
 	}
 }
 
