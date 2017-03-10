@@ -3,8 +3,8 @@ package main
 import (
 	"axiom"
 	"fmt"
-	"wxbot/wechat"
 	"strings"
+	"wxbot/wechat"
 )
 
 type WeChat struct {
@@ -58,7 +58,7 @@ func (w *WeChat) chatRoomMember(room_name string) (map[string]int, error) {
 	stats = map[string]int{
 		"woman": woman,
 		"man":   man,
-		"none": none,
+		"none":  none,
 	}
 
 	return stats, nil
@@ -99,15 +99,15 @@ func (w *WeChat) Process() error {
 
 					w.bot.ReceiveMessage(amsg)
 				}
-			} else {
-				amsg := axiom.Message{
-					User: msg.FromUserName,
-					Text: msg.Content,
-				}
-
-				w.bot.ReceiveMessage(amsg)
 			}
 
+		} else {
+			amsg := axiom.Message{
+				User: msg.FromUserName,
+				Text: msg.Content,
+			}
+
+			w.bot.ReceiveMessage(amsg)
 		}
 
 	})
