@@ -58,7 +58,7 @@ func (wechat *WeChat) beginSync() error {
 	log.Infof(`发现主机: [%s], 开始同步 ... ...`, wechat.syncHost)
 
 	for {
-		log.Info(`消息同步中 ....`)
+		//log.Info(`消息同步中 ....`)
 
 		code, selector, err := wechat.syncCheck()
 
@@ -165,13 +165,13 @@ func (wechat *WeChat) choseAvalibleSyncHost() bool {
 		`webpush2.wx.qq.com`}
 
 	for _, host := range hosts {
-		log.Debugf("尝试连接: %s ... ... ", host)
+		log.Debugf("尝试连接: [%s] ... ... ", host)
 		wechat.syncHost = host
 		code, _, _ := wechat.syncCheck()
 		if code == `0` {
 			return true
 		}
-		log.Errorf("%s 连接失败 ... ...", host)
+		log.Errorf("[%s] 连接失败 ... ...", host)
 	}
 
 	return false

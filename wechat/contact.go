@@ -188,7 +188,7 @@ func (wechat *WeChat) fetchGroupsMembers(groups []map[string]interface{}) ([]map
 
 	list := make([]map[string]string, 0)
 
-	log.Debugf(`微信群 %s`, groups)
+	log.Debugf(`微信群组 %s`, groups)
 	for _, group := range groups {
 
 		encryChatRoomID, _ := group[`EncryChatRoomId`].(string)
@@ -244,7 +244,7 @@ func (wechat *WeChat) UpateGroupIfNeeded(groupID string) {
 // ForceUpdateGroup upate group infomation
 func (wechat *WeChat) ForceUpdateGroup(groupUserName string) {
 
-	log.Debugf(`准备强制更新用户名: %s ...`, groupUserName)
+	log.Debugf(`准备强制更新用户名: [%s] ...`, groupUserName)
 
 	groups, err := wechat.fetchGroups([]string{groupUserName})
 	if err != nil || len(groups) != 1 {

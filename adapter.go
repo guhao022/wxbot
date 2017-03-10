@@ -3,10 +3,12 @@ package main
 import (
 	"axiom"
 	"wxbot/wechat"
+	"fmt"
 )
 
 type WeChat struct {
 	bot *axiom.Robot
+	wechat *wechat.WeChat
 }
 
 func NewWeChat(bot *axiom.Robot) *WeChat {
@@ -18,15 +20,25 @@ func NewWeChat(bot *axiom.Robot) *WeChat {
 		panic(err)
 	}
 
-	wechat.Handle()
-
 	return &WeChat{
 		bot: bot,
+		wechat: wechat,
 	}
 }
 
 // 初始化
 func (w *WeChat) Construct() error {
+
+	w.wechat.Go()
+
+	w.wechat.Handle(`/login`, func(arg wechat.Event) {
+		isSuccess := arg.Data.(int) == 1
+		if isSuccess {
+			fmt.Println(`login Success`)
+		} else {
+			fmt.Println(`login Failed`)
+		}
+	})
 
 	return nil
 }

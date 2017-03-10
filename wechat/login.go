@@ -76,7 +76,7 @@ func (wechat *WeChat) beginLoginFlow() error {
 
 		return err
 	} else {
-		log.Error("恢复失败：%s ...", err)
+		log.Error("恢复失败：%v ...", err)
 	}
 
 
@@ -313,7 +313,7 @@ func (wechat *WeChat) keepAlive() {
 		err := wechat.reLogin()
 
 		if err != nil {
-			log.Errorf(`登陆失败: %v`, err)
+			log.Errorf(`登陆失败: %v ...`, err)
 			retryTimes := wechat.retryTimes
 			triggerAfter := time.After(time.Minute * retryTimes)
 			log.Warnf(`准备 %d 分钟后重新登陆...`, retryTimes)
