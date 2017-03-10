@@ -77,8 +77,8 @@ func (wechat *WeChat) beginSync() error {
 			for continueFlag != 0 {
 				resp, err := wechat.sync()
 				if err != nil {
-					log.Error("同步消息失败：%s", err)
-					return errors.New(`sync message failed`)
+					log.Error("同步消息失败：%s...", err)
+					return errors.New(`同步消息失败...`)
 				}
 				continueFlag = resp.ContinueFlag
 

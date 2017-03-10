@@ -254,8 +254,8 @@ func (wechat *WeChat) syncContacts(cts []map[string]interface{}) {
 		}
 		if len(lostUser) != 0 {
 			log.Warn(`丢失了以下用户 so sorry ~ ~`)
-			for nick, ggids := range lostUser {
-				log.Warnf(`用户名: %s \n GGIDs: %s`, nick, ggids)
+			for nick, _ := range lostUser {
+				log.Warnf(`用户名: %s ...`, nick)
 			}
 		}
 	}

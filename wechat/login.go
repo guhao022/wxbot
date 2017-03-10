@@ -58,7 +58,7 @@ func (wechat *WeChat) beginLoginFlow() error {
 
 	if err == nil {
 
-		log.Info(`尝试恢复登陆...`)
+		log.Info(`尝试恢复登陆 ...`)
 
 		wechat.BaseURL = cached[`baseURL`].(string)
 		wechat.BaseRequest = cached[`baseRequest`].(*BaseRequest)
@@ -76,7 +76,7 @@ func (wechat *WeChat) beginLoginFlow() error {
 
 		return err
 	} else {
-		log.Error("恢复失败：%v ...", err)
+		log.Errorf("恢复失败：%s ...", err.Error())
 	}
 
 
@@ -193,7 +193,7 @@ func (wechat *WeChat) fetchUUID() (string, error) {
 	}
 
 	if code != httpOK {
-		err = fmt.Errorf("错误代码:[%s], 返回结果:[%s]", code, ds)
+		err = fmt.Errorf("错误代码:[%s], 返回结果:[%s]...", code, ds)
 		return ``, err
 	}
 
