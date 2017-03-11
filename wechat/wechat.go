@@ -55,7 +55,7 @@ func (response *Response) IsSuccess() bool {
 
 // response's error msg.
 func (response *Response) Error() error {
-	return fmt.Errorf("error message:[%s]", response.BaseResponse.ErrMsg)
+	return fmt.Errorf("错误信息: %s", response.BaseResponse.ErrMsg)
 }
 
 // BaseResponse for all api resp.
@@ -300,7 +300,7 @@ func init() {
 	//log.DelEngine("console")
 
 	// 设置是否输出行号
-	//log.SetFuncCall(true)
+	log.SetFuncCall(true)
 
 	// 设置log级别
 	//log.SetLevel("Warning")

@@ -118,7 +118,7 @@ func (wechat *WeChat) syncContacts(cts []map[string]interface{}) {
 
 	count := len(cts)
 
-	log.Infof(`一共需要处理 [%d] 个联系人...`, count)
+	log.Tracf(`一共需要处理 [%d] 个联系人...`, count)
 	if count > 300 {
 		log.Debug(`您的联系人较多，可能需要等待1分钟左右...`) // TODO 用多线程比较
 	}
@@ -128,7 +128,7 @@ func (wechat *WeChat) syncContacts(cts []map[string]interface{}) {
 	// 3. 内存和文件系统中都有联系人 ==> 以内存中的数据为主，更新数据，然后写文件
 	//
 	c := wechat.cache
-	log.Info(`准备开始处理联系人信息...`)
+	log.Trac(`准备开始处理联系人信息...`)
 	c.userGG = make(map[string]string)
 
 	if len(c.ggmap) == 0 {

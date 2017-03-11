@@ -55,7 +55,7 @@ func (wechat *WeChat) beginSync() error {
 		return fmt.Errorf(`无法同步可用主机，请重新登录...`)
 	}
 
-	log.Infof(`发现主机: [%s], 开始同步 ... ...`, wechat.syncHost)
+	log.Tracf(`发现主机: [%s], 开始同步 ... ...`, wechat.syncHost)
 
 	for {
 		//log.Info(`消息同步中 ....`)

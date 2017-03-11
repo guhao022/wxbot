@@ -65,12 +65,13 @@ func init() {
 	// 初始化
 	log = loger.NewLog(1000)
 	// 设置输出引擎
-	log.SetEngine("file", `{"level":"warning","spilt":"size", "filename":"logs/test.log", "maxsize":10}`)
+	log.SetEngine("file", `{"level":4,"spilt":"size", "filename":".webot/logs/test.log", "maxsize":10}`)
 
 	//log.DelEngine("console")
 
 	// 设置是否输出行号
-	//log.SetFuncCall(true)
+	log.SetFuncCall(true)
+	log.SetFuncCallDepth(5)
 
 	// 设置log级别
 	//log.SetLevel("Warning")

@@ -322,14 +322,14 @@ func (wechat *WeChat) keepAlive() {
 			return
 		}
 
-		log.Info(`登陆成功... ...`)
+		log.Trac(`登陆成功... ...`)
 
-		log.Info(`开始同步联系人...`)
+		log.Trac(`开始同步联系人...`)
 		err = wechat.SyncContact()
 		if err != nil {
 			log.Errorf(`同步联系人失败: %v`, err)
 		}
-		log.Info(`同步联系人成功...`)
+		log.Trac(`同步联系人成功...`)
 
 		wechat.loginState <- 1
 		err = wechat.beginSync()
