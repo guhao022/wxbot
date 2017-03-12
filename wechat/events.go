@@ -306,7 +306,7 @@ func (wechat *WeChat) emitNewMessageEvent(m map[string]interface{}) {
 	mid := m[`MsgId`].(string)
 
 	isMediaMsg := false
-	mediaURL := ``
+	mediaURL := `./media/`
 	path := ``
 
 	switch msgType {

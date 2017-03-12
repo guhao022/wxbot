@@ -58,7 +58,7 @@ func (wechat *WeChat) beginSync() error {
 	log.Tracf(`发现主机: [%s], 开始同步 ... ...`, wechat.syncHost)
 
 	for {
-		//log.Info(`消息同步中 ....`)
+		//1log.Info(`消息同步中 ....`)
 
 		code, selector, err := wechat.syncCheck()
 

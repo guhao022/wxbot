@@ -2,9 +2,9 @@ package main
 
 import (
 	"axiom"
-	"fmt"
 	"strings"
 	"wxbot/wechat"
+	"fmt"
 )
 
 type WeChat struct {
@@ -93,6 +93,7 @@ func (w *WeChat) Process() error {
 		msg := evt.Data.(wechat.EventMsgData)
 
 		if msg.IsGroupMsg {
+
 			if msg.AtMe {
 				realcontent := strings.TrimSpace(strings.Replace(msg.Content, "@"+w.Wechat.MySelf.NickName, "", 1))
 				if realcontent == "统计人数" {
@@ -106,22 +107,24 @@ func (w *WeChat) Process() error {
 					}
 				} else {
 					amsg := axiom.Message{
-						User: msg.FromUserName,
+						ToUserName: msg.FromUserName,
+						ToAXID: msg.FromGGID,
 						Text: realcontent,
 					}
 
 					w.bot.ReceiveMessage(amsg)
+					x.autoReplay(msg)
 				}
 			}
 
 		} else {
 
-			x.autoReplay(msg)
-
 			amsg := axiom.Message{
-				User: msg.FromUserName,
+				ToUserName: msg.FromUserName,
+				ToAXID: msg.FromGGID,
 				Text: msg.Content,
 			}
+			//x.autoReplay(msg)
 
 			w.bot.ReceiveMessage(amsg)
 		}
@@ -135,7 +138,7 @@ func (w *WeChat) Process() error {
 // 回应
 func (w *WeChat) Reply(msg axiom.Message, message string) error {
 
-	w.Wechat.SendTextMsg(message, msg.User)
+	w.Wechat.SendTextMsg(message, msg.ToUserName)
 
 	return nil
 }

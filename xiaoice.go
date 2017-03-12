@@ -1,9 +1,10 @@
 package main
 
 import (
+	"strings"
 	"sync"
-	"wxbot/wechat"
 	"wxbot/tools/log"
+	"wxbot/wechat"
 )
 
 type xiaoice struct {
@@ -52,7 +53,7 @@ func (x *xiaoice) autoReplay(msg wechat.EventMsgData) {
 				err = e
 			}
 		} else {
-			println(msg.Content)
+			msg.Content = strings.Trim(msg.Content, "@"+x.bot.Wechat.MySelf.NickName)
 			err = x.bot.Wechat.SendTextMsg(msg.Content, x.un)
 		}
 

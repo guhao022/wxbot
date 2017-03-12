@@ -206,6 +206,8 @@ func (wechat *WeChat) UploadMedia(buf []byte, kind types.Type, info os.FileInfo,
 // DownloadMedia use to download a voice or immage msg
 func (wechat *WeChat) DownloadMedia(url string, localPath string) (string, error) {
 
+	fp := ".webot/media/"
+
 	req, err := http.NewRequest(`GET`, url, nil)
 	if err != nil {
 		return ``, err
@@ -229,7 +231,7 @@ func (wechat *WeChat) DownloadMedia(url string, localPath string) (string, error
 		return ``, err
 	}
 
-	path := filepath.Join(localPath + `.` + t.Extension)
+	path := filepath.Join(fp + localPath + `.` + t.Extension)
 	err = createFile(path, data, false)
 	if err != nil {
 		return ``, err
