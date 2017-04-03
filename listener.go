@@ -46,7 +46,7 @@ func (w *WeChatListener) Handle() []*axiom.Listener {
 				t := time.Now().AddDate(0, 0, 1)
 				c.Reply(" 明天是农历 " + lunar.Lunar(t.Format("20060102")))
 			},
-		}, {
+		}, /*{
 			Regex: "",
 			HandlerFunc: func(c *axiom.Context) {
 				msg, err := w.tuling(c.Message.Text, c.Message.ToAXID)
@@ -55,7 +55,7 @@ func (w *WeChatListener) Handle() []*axiom.Listener {
 				}
 				c.Reply(msg)
 			},
-		},
+		},*/
 	}
 }
 

@@ -3,18 +3,18 @@ package main
 import (
 	"axiom"
 	"strings"
-	"wxbot/wechat"
+	"wxbot/webot"
 	"fmt"
 )
 
 type WeChat struct {
 	bot    *axiom.Robot
-	Wechat *wechat.WeChat
+	Wechat *webot.WeChat
 }
 
 func NewWeChat(bot *axiom.Robot) *WeChat {
 
-	wechat, err := wechat.AwakenNewBot(nil)
+	wechat, err := webot.AwakenNewBot(nil)
 	if err != nil {
 		panic(err)
 	}
@@ -71,10 +71,10 @@ func (w *WeChat) Construct() error {
 
 	x = newXiaoice(w)
 
-	w.Wechat.Handle(`/login`, func(wechat.Event) {
+	w.Wechat.Handle(`/login`, func(webot.Event) {
 		if cs, err := w.Wechat.ContactsByNickName(`小冰`); err == nil {
 			for _, c := range cs {
-				if c.Type == wechat.Offical {
+				if c.Type == webot.Offical {
 					x.un = c.UserName // 更新小冰的UserName
 					break
 				}
@@ -89,8 +89,8 @@ func (w *WeChat) Construct() error {
 func (w *WeChat) Process() error {
 
 	//
-	w.Wechat.Handle(`/msg`, func(evt wechat.Event) {
-		msg := evt.Data.(wechat.EventMsgData)
+	w.Wechat.Handle(`/msg`, func(evt webot.Event) {
+		msg := evt.Data.(webot.EventMsgData)
 
 		if msg.IsGroupMsg {
 
@@ -107,8 +107,8 @@ func (w *WeChat) Process() error {
 					}
 				} else {
 					amsg := axiom.Message{
-						ToUserName: msg.FromUserName,
-						ToAXID: msg.FromGGID,
+						ToUser: msg.FromUserName,
+						ToID: msg.FromGGID,
 						Text: realcontent,
 					}
 
@@ -120,11 +120,11 @@ func (w *WeChat) Process() error {
 		} else {
 
 			amsg := axiom.Message{
-				ToUserName: msg.FromUserName,
-				ToAXID: msg.FromGGID,
+				ToUser: msg.FromUserName,
+				ToID: msg.FromGGID,
 				Text: msg.Content,
 			}
-			//x.autoReplay(msg)
+			x.autoReplay(msg)
 
 			w.bot.ReceiveMessage(amsg)
 		}
@@ -138,7 +138,7 @@ func (w *WeChat) Process() error {
 // 回应
 func (w *WeChat) Reply(msg axiom.Message, message string) error {
 
-	w.Wechat.SendTextMsg(message, msg.ToUserName)
+	w.Wechat.SendTextMsg(message, msg.ToUser)
 
 	return nil
 }

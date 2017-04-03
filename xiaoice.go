@@ -4,7 +4,7 @@ import (
 	"strings"
 	"sync"
 	"wxbot/tools/log"
-	"wxbot/wechat"
+	"wxbot/webot"
 )
 
 type xiaoice struct {
@@ -20,7 +20,7 @@ func newXiaoice(wx *WeChat) *xiaoice {
 	return x
 }
 
-func (x *xiaoice) autoReplay(msg wechat.EventMsgData) {
+func (x *xiaoice) autoReplay(msg webot.EventMsgData) {
 	if msg.IsSendedByMySelf {
 		return
 	}
